@@ -12,6 +12,7 @@ const FIM_SUFFIX string = "<|fim_suffix|>"
 const ENDOFPROMPT string = "<|endofprompt|>"
 
 const (
+	MODEL_QWEN_BASE   string = "qwen_base"
 	MODEL_CL100K_BASE string = "cl100k_base"
 	MODEL_P50K_BASE   string = "p50k_base"
 	MODEL_P50K_EDIT   string = "p50k_edit"
@@ -19,6 +20,8 @@ const (
 )
 
 var MODEL_TO_ENCODING = map[string]string{
+	// qwen
+	"qwen": MODEL_QWEN_BASE,
 	// chat
 	"gpt-4":         MODEL_CL100K_BASE,
 	"gpt-3.5-turbo": MODEL_CL100K_BASE,
@@ -98,6 +101,8 @@ func getEncoding(encodingName string) (*Encoding, error) {
 
 func initEncoding(encodingName string) (*Encoding, error) {
 	switch encodingName {
+	case MODEL_QWEN_BASE:
+		return qwen_base()
 	case MODEL_CL100K_BASE:
 		return cl100k_base()
 	case MODEL_P50K_BASE:
@@ -109,6 +114,26 @@ func initEncoding(encodingName string) (*Encoding, error) {
 	default:
 		return nil, errors.New("Unknown encoding: " + encodingName)
 	}
+}
+
+func qwen_base() (*Encoding, error) {
+	ranks, err := bpeLoader.LoadTiktokenBpe("tiktoken/qwen.tiktoken")
+	if err != nil {
+		return nil, err
+	}
+	special_tokens := map[string]int{
+		ENDOFTEXT:   100257,
+		FIM_PREFIX:  100258,
+		FIM_MIDDLE:  100259,
+		FIM_SUFFIX:  100260,
+		ENDOFPROMPT: 100276,
+	}
+	return &Encoding{
+		Name:           MODEL_QWEN_BASE,
+		PatStr:         `(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\\r\\n\\p{L}\\p{N}]?\\p{L}+|\\p{N}| ?[^\\s\\p{L}\\p{N}]+[\\r\\n]*|\\s*[\\r\\n]+|\\s+(?!\\S)|\\s+`,
+		MergeableRanks: ranks,
+		SpecialTokens:  special_tokens,
+	}, nil
 }
 
 func cl100k_base() (*Encoding, error) {
